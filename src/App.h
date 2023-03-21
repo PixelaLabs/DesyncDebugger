@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Common.h"
-
 #include "SDL3/SDL.h"
 
 class AppUI;
@@ -11,7 +9,7 @@ class App
 {
 public:
     bool Run(AppUI& AppUI, AppState& AppState);
-    bool Init(uint2 windowSize);
+    bool Init(uint32_t InWindowWidth, uint32_t InWindowHeight);
     void Shutdown();
 
 private:
@@ -21,7 +19,8 @@ private:
     SDL_Texture* _lockableBackBuffer;
     SDL_GLContext _glContext;
 
-    uint2 _windowSize;
+    uint32_t WindowWidth;
+    uint32_t WindowHeight;
 
     bool _showProfiler;
     bool _showScanRows;

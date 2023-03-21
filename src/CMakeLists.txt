@@ -26,7 +26,6 @@ add_executable(DesyncDebugger main.cpp
     AppState.h
     AppUI.cpp
     AppUI.h
-    Common.h
 )
 
 target_include_directories(DesyncDebugger PUBLIC ThirdParty/SDL/include)

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Common.h"
-
 #include "Cluster.h"
 #include "ComparisonResult.h"
 

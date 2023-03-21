@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 {
     App App;
 
-    if (!App.Init(uint2(AppWidth, AppHeight)))
+    if (!App.Init(AppWidth, AppHeight))
     {
         return -1;
     }

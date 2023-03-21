@@ -48,7 +48,7 @@ bool App::Run(AppUI& AppUI, AppState& AppState)
     return true;
 }
 
-bool App::Init(uint2 windowSize)
+bool App::Init(uint32_t InWindowWidth, uint32_t InWindowHeight)
 {
     SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, "opengl", SDL_HINT_OVERRIDE);
 
@@ -58,13 +58,14 @@ bool App::Init(uint2 windowSize)
         return false;
     }
 
-    _windowSize = windowSize;
+    WindowWidth = InWindowWidth;
+    WindowHeight = InWindowHeight;
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     
     _window = SDL_CreateWindow("DesyncDebugger",
-        windowSize.x, windowSize.y,
+        WindowWidth, WindowHeight,
         SDL_WINDOW_OPENGL | SDL_RENDERER_PRESENTVSYNC | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
 
     if (_window == nullptr)
@@ -91,10 +92,10 @@ bool App::Init(uint2 windowSize)
     }
 
     _backBuffer = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_RGBA8888,
-        SDL_TEXTUREACCESS_TARGET, int(windowSize.x), int(windowSize.y));
+        SDL_TEXTUREACCESS_TARGET, int(InWindowWidth), int(WindowHeight));
 
     _lockableBackBuffer = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_RGBA8888,
-        SDL_TEXTUREACCESS_STREAMING, int(windowSize.x), int(windowSize.y));
+        SDL_TEXTUREACCESS_STREAMING, int(InWindowWidth), int(WindowHeight));
 
     _glContext = SDL_GL_CreateContext(_window);
 
