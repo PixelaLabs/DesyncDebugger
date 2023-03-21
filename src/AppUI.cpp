@@ -180,6 +180,8 @@ void AppUI::DrawLogView(AppState& AppState)
     ImGui::SameLine();
     LogFilter.Draw("Filter", -100.0f);
 
+    ImGui::Separator();
+
     LogStrings.resize(FilteredMsgs.size());
 
     int StringIdx = 0;
