@@ -6,6 +6,9 @@
 
 #include "App.h"
 
+#include "AppState.h"
+#include "AppUI.h"
+
 const uint32_t AppWidth = 1920;
 const uint32_t AppHeight = 1080;
 
@@ -29,8 +32,9 @@ int main(int argc, char** argv)
     ParseCmdLineArguments(argc, argv);
 
     AppUI AppUI;
+    AppState AppState;
 
-    App.Run(&AppUI);
+    App.Run(AppUI, AppState);
 
     App.Shutdown();
 }

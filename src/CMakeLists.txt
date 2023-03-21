@@ -17,10 +17,13 @@ set(BUILD_SHARED_LIBS OFF)
 
 add_subdirectory(ThirdParty/SDL)
 add_subdirectory(ThirdParty/imgui_cmake)
+add_subdirectory(ThirdParty/DesyncCompare/src)
 
 add_executable(DesyncDebugger main.cpp 
     App.cpp 
     App.h
+    AppState.cpp 
+    AppState.h
     AppUI.cpp
     AppUI.h
     Common.h
@@ -28,9 +31,11 @@ add_executable(DesyncDebugger main.cpp
 
 target_include_directories(DesyncDebugger PUBLIC ThirdParty/SDL/include)
 target_include_directories(DesyncDebugger PUBLIC ThirdParty/imgui)
+target_include_directories(DesyncDebugger PUBLIC ThirdParty/DesyncCompare/src)
 
 find_package(OpenGL REQUIRED)
 target_link_libraries(DesyncDebugger ${OPENGL_LIBRARIES})
 
 target_link_libraries(DesyncDebugger SDL3-static)
 target_link_libraries(DesyncDebugger imgui)
+target_link_libraries(DesyncDebugger DesyncCompare)

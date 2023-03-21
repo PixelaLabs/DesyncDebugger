@@ -1,170 +1,49 @@
 #include "AppUI.h"
 
+#include "AppState.h"
+
 #include "imgui.h"
 
-struct ExampleAppLog
+static ImGuiTextFilter LogFilter;
+static ImGuiTextFilter EntriesFilter;
+static ImGuiTextFilter CategoryFilter;
+
+void AppUI::DrawUI(AppState& AppState)
 {
-    ImGuiTextBuffer     Buf;
-    ImGuiTextFilter     Filter;
-    ImVector<int>       LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
-    bool                AutoScroll;  // Keep scrolling if already at the bottom.
+    DrawMainMenu(AppState);
+    DrawLogView(AppState);
 
-    ExampleAppLog()
-    {
-        AutoScroll = true;
-        Clear();
-    }
-
-    void    Clear()
-    {
-        Buf.clear();
-        LineOffsets.clear();
-        LineOffsets.push_back(0);
-    }
-
-    void    AddLog(const char* fmt, ...) IM_FMTARGS(2)
-    {
-        int old_size = Buf.size();
-        va_list args;
-        va_start(args, fmt);
-        Buf.appendfv(fmt, args);
-        va_end(args);
-        for (int new_size = Buf.size(); old_size < new_size; old_size++)
-            if (Buf[old_size] == '\n')
-                LineOffsets.push_back(old_size + 1);
-    }
-
-    void    Draw(const char* title, bool* p_open = NULL)
-    {
-        if (!ImGui::Begin(title, p_open))
-        {
-            ImGui::End();
-            return;
-        }
-
-        // Options menu
-        if (ImGui::BeginPopup("Options"))
-        {
-            ImGui::Checkbox("Auto-scroll", &AutoScroll);
-            ImGui::EndPopup();
-        }
-
-        // Main window
-        if (ImGui::Button("Options"))
-            ImGui::OpenPopup("Options");
-        ImGui::SameLine();
-        bool clear = ImGui::Button("Clear");
-        ImGui::SameLine();
-        bool copy = ImGui::Button("Copy");
-        ImGui::SameLine();
-        Filter.Draw("Filter", -100.0f);
-
-        ImGui::Separator();
-
-        if (ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
-        {
-            if (clear)
-                Clear();
-            if (copy)
-                ImGui::LogToClipboard();
-
-            ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-            const char* buf = Buf.begin();
-            const char* buf_end = Buf.end();
-            if (Filter.IsActive())
-            {
-                // In this example we don't use the clipper when Filter is enabled.
-                // This is because we don't have random access to the result of our filter.
-                // A real application processing logs with ten of thousands of entries may want to store the result of
-                // search/filter.. especially if the filtering function is not trivial (e.g. reg-exp).
-                for (int line_no = 0; line_no < LineOffsets.Size; line_no++)
-                {
-                    const char* line_start = buf + LineOffsets[line_no];
-                    const char* line_end = (line_no + 1 < LineOffsets.Size) ? (buf + LineOffsets[line_no + 1] - 1) : buf_end;
-                    if (Filter.PassFilter(line_start, line_end))
-                        ImGui::TextUnformatted(line_start, line_end);
-                }
-            }
-            else
-            {
-                // The simplest and easy way to display the entire buffer:
-                //   ImGui::TextUnformatted(buf_begin, buf_end);
-                // And it'll just work. TextUnformatted() has specialization for large blob of text and will fast-forward
-                // to skip non-visible lines. Here we instead demonstrate using the clipper to only process lines that are
-                // within the visible area.
-                // If you have tens of thousands of items and their processing cost is non-negligible, coarse clipping them
-                // on your side is recommended. Using ImGuiListClipper requires
-                // - A) random access into your data
-                // - B) items all being the  same height,
-                // both of which we can handle since we have an array pointing to the beginning of each line of text.
-                // When using the filter (in the block of code above) we don't have random access into the data to display
-                // anymore, which is why we don't use the clipper. Storing or skimming through the search result would make
-                // it possible (and would be recommended if you want to search through tens of thousands of entries).
-                ImGuiListClipper clipper;
-                clipper.Begin(LineOffsets.Size);
-                while (clipper.Step())
-                {
-                    for (int line_no = clipper.DisplayStart; line_no < clipper.DisplayEnd; line_no++)
-                    {
-                        const char* line_start = buf + LineOffsets[line_no];
-                        const char* line_end = (line_no + 1 < LineOffsets.Size) ? (buf + LineOffsets[line_no + 1] - 1) : buf_end;
-                        ImGui::TextUnformatted(line_start, line_end);
-                    }
-                }
-                clipper.End();
-            }
-            ImGui::PopStyleVar();
-
-            // Keep up at the bottom of the scroll region if we were already at the bottom at the beginning of the frame.
-            // Using a scrollbar or mouse-wheel will take away from the bottom edge.
-            if (AutoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
-                ImGui::SetScrollHereY(1.0f);
-        }
-        ImGui::EndChild();
-        ImGui::End();
-    }
-};
-
-// Demonstrate creating a simple log window with basic filtering.
-static void ShowExampleAppLog(bool* p_open)
-{
-    static ExampleAppLog log;
-
-    // For the demo: add a debug button _BEFORE_ the normal log window contents
-    // We take advantage of a rarely used feature: multiple calls to Begin()/End() are appending to the _same_ window.
-    // Most of the contents of the window will be added by the log.Draw() call.
-    ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Example: Log", p_open);
-
-    if (ImGui::SmallButton("[Debug] Add 5 entries"))
-    {
-        static int counter = 0;
-        const char* categories[3] = { "info", "warn", "error" };
-        const char* words[] = { "Bumfuzzled", "Cattywampus", "Snickersnee", "Abibliophobia", "Absquatulate", "Nincompoop", "Pauciloquent" };
-        for (int n = 0; n < 5; n++)
-        {
-            const char* category = categories[counter % IM_ARRAYSIZE(categories)];
-            const char* word = words[counter % IM_ARRAYSIZE(words)];
-            log.AddLog("[%05d] [%s] Hello, current time is %.1f, here's a word: '%s'\n",
-                ImGui::GetFrameCount(), category, ImGui::GetTime(), word);
-            counter++;
-        }
-    }
-    ImGui::End();
-
-    // Actually call in the regular Log helper (which will Begin() into the same window as we just did)
-    log.Draw("Example: Log", p_open);
-}
-
-AppUI::AppUI()
-{
-
-}
-
-void AppUI::DrawUI()
-{
     DrawEntryView();
-    DrawLogView();
+    DrawCategoryView();
+}
+
+void AppUI::DrawMainMenu(AppState& AppState)
+{
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Load Log Files"))
+            {
+                AppState.UpdateClusterData("");
+
+                FilteredMsgs.clear();
+                EntryNames.clear();
+                CategoryNames.clear();
+
+                auto const& Results = AppState.GetComparisonResults();
+
+                Results.FilterByMsgType(MsgType::All, FilteredMsgs);
+
+                Results.GetEntryNames(EntryNames);
+                Results.GetCategoryNames(CategoryNames);
+            }
+
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMainMenuBar();
+    }
 }
 
 void AppUI::DrawEntryView()
@@ -172,17 +51,160 @@ void AppUI::DrawEntryView()
     ImGui::SetNextWindowSize(ImVec2(500, 200), ImGuiCond_FirstUseEver);
     ImGui::Begin("Entries");
 
-    for (int i = 0; i < 20; i++)
+    if (ImGui::Button("X"))
     {
-        if (ImGui::Selectable("EntryName", false))
+        EntriesFilter.Clear();
+    }
+    ImGui::SameLine();
+    EntriesFilter.Draw("Filter", -100.0f);
+
+    for (auto const& EntryName : EntryNames)
+    {
+        if (!EntriesFilter.PassFilter(EntryName.c_str()))
         {
+            continue;
+        }
+
+        if (ImGui::Selectable(EntryName.c_str(), false))
+        {
+            LogFilter.Clear();
+
+            std::strcpy(LogFilter.InputBuf, EntryName.c_str());
+
+            LogFilter.Build();
         }
     }
 
     ImGui::End();
 }
 
-void AppUI::DrawLogView()
+void AppUI::DrawCategoryView()
 {
-    ShowExampleAppLog(0);
+    ImGui::SetNextWindowSize(ImVec2(500, 200), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Categories");
+
+    if (ImGui::Button("X"))
+    {
+        CategoryFilter.Clear();
+    }
+    ImGui::SameLine();
+    CategoryFilter.Draw("Filter", -100.0f);
+
+    for (auto const& CategoryName : CategoryNames)
+    {
+        if (!CategoryFilter.PassFilter(CategoryName.c_str()))
+        {
+            continue;
+        }
+
+        if (ImGui::Selectable(CategoryName.c_str(), false))
+        {
+            LogFilter.Clear();
+
+            std::strcpy(LogFilter.InputBuf, CategoryName.c_str());
+
+            LogFilter.Build();
+        }
+    }
+
+    ImGui::End();
+}
+
+void AppUI::DrawLogView(AppState& AppState)
+{
+    ImGui::SetNextWindowSize(ImVec2(500, 400), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Compare Log");
+
+    ImGui::End();
+
+    static bool AutoScroll = true;
+
+    if (!ImGui::Begin("Compare Log"))
+    {
+        ImGui::End();
+        return;
+    }
+
+    if (ImGui::Button("[All]"))
+    {
+        auto const& Results = AppState.GetComparisonResults();
+
+        FilteredMsgs.clear();
+        Results.FilterByMsgType(MsgType::All, FilteredMsgs);
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("[Sync]"))
+    {
+        auto const& Results = AppState.GetComparisonResults();
+
+        FilteredMsgs.clear();
+        Results.FilterByMsgType(MsgType::Sync, FilteredMsgs);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("[Desync]"))
+    {
+        auto const& Results = AppState.GetComparisonResults();
+
+        FilteredMsgs.clear();
+        Results.FilterByMsgType(MsgType::Desync, FilteredMsgs);
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("X"))
+    {
+        LogFilter.Clear();
+    }
+    ImGui::SameLine();
+    LogFilter.Draw("Filter", -100.0f);
+
+    LogStrings.resize(FilteredMsgs.size());
+
+    int StringIdx = 0;
+
+    for (auto const& Msg : FilteredMsgs)
+    {
+        if (LogFilter.PassFilter(Msg.Entry.GetName().c_str())
+            || LogFilter.PassFilter(Msg.Entry.GetInfo().c_str())
+            || LogFilter.PassFilter(Msg.Entry.GetCategory().c_str()))
+        {
+            if (Msg.Type == MsgType::Sync)
+            {
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "[Sync]");
+            }
+            else
+            {
+                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "[Desync]");
+            }
+
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Frame[%d]", Msg.FrameIdx);
+
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "[%s]", Msg.Entry.GetCategory().c_str());
+
+            ImGui::SameLine();
+
+            const size_t StringBufferLength = 256;
+            LogStrings[StringIdx].resize(StringBufferLength, 0);
+
+            ImGui::SameLine();
+            ImGui::Text("Entry:");
+
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "%s", Msg.Entry.GetName().c_str());
+
+            std::snprintf(&LogStrings[StringIdx][0], StringBufferLength, "Info: %s", Msg.Entry.GetInfo().c_str());
+            
+            ImGui::SameLine();
+            if (ImGui::Selectable(LogStrings[StringIdx].c_str()))
+            {
+
+            }
+
+            StringIdx++;
+        }
+    }
+
+    ImGui::End();
 }

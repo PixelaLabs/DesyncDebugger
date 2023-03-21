@@ -1,18 +1,19 @@
 #pragma once
 
 #include "Common.h"
-#include "AppUI.h"
 
 #include "SDL3/SDL.h"
+
+class AppUI;
+class AppState;
 
 class App
 {
 public:
-    bool Run(AppUI* AppUI);
+    bool Run(AppUI& AppUI, AppState& AppState);
     bool Init(uint2 windowSize);
     void Shutdown();
-protected:
-    void DrawUI(AppUI* AppUI);
+
 private:
     SDL_Window* _window;
     SDL_Renderer* _renderer;

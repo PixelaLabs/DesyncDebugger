@@ -1,5 +1,7 @@
 #include "App.h"
 
+#include "AppUI.h"
+
 #include <iostream>
 
 #include "SDL3/SDL.h"
@@ -8,9 +10,7 @@
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_sdlrenderer.h"
 
-
-
-bool App::Run(AppUI* AppUI)
+bool App::Run(AppUI& AppUI, AppState& AppState)
 {
     while (!_quit)
     {
@@ -37,7 +37,7 @@ bool App::Run(AppUI* AppUI)
         SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 0);
         SDL_RenderClear(_renderer);
 
-        DrawUI(AppUI);
+        AppUI.DrawUI(AppState);
 
         ImGui::Render();
         ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
@@ -65,7 +65,7 @@ bool App::Init(uint2 windowSize)
     
     _window = SDL_CreateWindow("DesyncDebugger",
         windowSize.x, windowSize.y,
-        SDL_WINDOW_OPENGL | SDL_RENDERER_PRESENTVSYNC);
+        SDL_WINDOW_OPENGL | SDL_RENDERER_PRESENTVSYNC | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
 
     if (_window == nullptr)
     {
@@ -134,35 +134,4 @@ void App::Shutdown()
     SDL_DestroyWindow(_window);
 
     SDL_Quit();
-}
-
-void App::DrawUI(AppUI* AppUI)
-{
-    if (ImGui::BeginMainMenuBar())
-    {
-        if (ImGui::BeginMenu("File"))
-        {
-            if (ImGui::MenuItem("Exit"))
-            {
-                _quit = true;
-            }
-
-            ImGui::EndMenu();
-        }
-
-        if (ImGui::BeginMenu("View"))
-        {
-            if (ImGui::MenuItem("Profiler"))
-            {
-                _showProfiler = !_showProfiler;
-            }
-            ImGui::EndMenu();
-        }
-        ImGui::EndMainMenuBar();
-    }
-
-    if (AppUI != nullptr)
-    {
-        AppUI->DrawUI();
-    }
 }
