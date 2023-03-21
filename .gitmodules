@@ -1,6 +1,7 @@
 [submodule "src/ThirdParty/SDL"]
 	path = src/ThirdParty/SDL
 	url = https://github.com/libsdl-org/SDL.git
+
 [submodule "src/ThirdParty/DesyncCompare"]
 	path = src/ThirdParty/DesyncCompare
 	url = https://github.com/d-rubalskyi/DesyncCompare.git
