@@ -60,38 +60,41 @@ void AppUI::DrawEntryView()
     
     ImGui::Separator();
 
-    for (auto const& Data : EntryData)
+    if (ImGui::BeginChild("EntryViewScrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
     {
-        auto const& EntryName = Data.first;
-        bool SyncState = Data.second;
-
-        if (!EntriesFilter.PassFilter(EntryName.c_str()))
+        for (auto const& Data : EntryData)
         {
-            continue;
-        }
+            auto const& EntryName = Data.first;
+            bool SyncState = Data.second;
 
-        if (SyncState)
-        {
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.06f, 0.6f, 0.06f, 0.94f));
-            ImGui::Text("V");
-        }
-        else
-        {
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.06f, 0.06f, 0.94f));
-            ImGui::Text("X");
-        }
+            if (!EntriesFilter.PassFilter(EntryName.c_str()))
+            {
+                continue;
+            }
+
+            if (SyncState)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.06f, 0.6f, 0.06f, 0.94f));
+                ImGui::Text("V");
+            }
+            else
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.06f, 0.06f, 0.94f));
+                ImGui::Text("X");
+            }
 
 
-        ImGui::PopStyleColor();
+            ImGui::PopStyleColor();
 
-        ImGui::SameLine();
-        if (ImGui::Selectable(EntryName.c_str(), false))
-        {
-            LogFilter.Clear();
+            ImGui::SameLine();
+            if (ImGui::Selectable(EntryName.c_str(), false))
+            {
+                LogFilter.Clear();
 
-            std::strcpy(LogFilter.InputBuf, EntryName.c_str());
+                std::strcpy(LogFilter.InputBuf, EntryName.c_str());
 
-            LogFilter.Build();
+                LogFilter.Build();
+            }
         }
     }
 
@@ -112,21 +115,26 @@ void AppUI::DrawCategoryView()
 
     ImGui::Separator();
 
-    for (auto const& CategoryName : CategoryNames)
+    if (ImGui::BeginChild("CategoryViewScrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
     {
-        if (!CategoryFilter.PassFilter(CategoryName.c_str()))
+        for (auto const& CategoryName : CategoryNames)
         {
-            continue;
+            if (!CategoryFilter.PassFilter(CategoryName.c_str()))
+            {
+                continue;
+            }
+
+            if (ImGui::Selectable(CategoryName.c_str(), false))
+            {
+                LogFilter.Clear();
+
+                std::strcpy(LogFilter.InputBuf, CategoryName.c_str());
+
+                LogFilter.Build();
+            }
         }
 
-        if (ImGui::Selectable(CategoryName.c_str(), false))
-        {
-            LogFilter.Clear();
-
-            std::strcpy(LogFilter.InputBuf, CategoryName.c_str());
-
-            LogFilter.Build();
-        }
+        ImGui::EndChild();
     }
 
     ImGui::End();
@@ -182,52 +190,57 @@ void AppUI::DrawLogView(AppState& AppState)
 
     ImGui::Separator();
 
-    LogStrings.resize(FilteredMsgs.size());
-
-    int StringIdx = 0;
-
-    for (auto const& Msg : FilteredMsgs)
+    if (ImGui::BeginChild("LogViewScrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
     {
-        if (LogFilter.PassFilter(Msg.Entry.GetName().c_str())
-            || LogFilter.PassFilter(Msg.Entry.GetInfo().c_str())
-            || LogFilter.PassFilter(Msg.Entry.GetCategory().c_str()))
+        LogStrings.resize(FilteredMsgs.size());
+
+        int StringIdx = 0;
+
+        for (auto const& Msg : FilteredMsgs)
         {
-            if (Msg.Type == MsgType::Sync)
+            if (LogFilter.PassFilter(Msg.Entry.GetName().c_str())
+                || LogFilter.PassFilter(Msg.Entry.GetInfo().c_str())
+                || LogFilter.PassFilter(Msg.Entry.GetCategory().c_str()))
             {
-                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "[Sync]");
+                if (Msg.Type == MsgType::Sync)
+                {
+                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "[Sync]");
+                }
+                else
+                {
+                    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "[Desync]");
+                }
+
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Frame[%d]", Msg.FrameIdx);
+
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "[%s]", Msg.Entry.GetCategory().c_str());
+
+                ImGui::SameLine();
+
+                const size_t StringBufferLength = 256;
+                LogStrings[StringIdx].resize(StringBufferLength, 0);
+
+                ImGui::SameLine();
+                ImGui::Text("Entry:");
+
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "%s", Msg.Entry.GetName().c_str());
+
+                std::snprintf(&LogStrings[StringIdx][0], StringBufferLength, "Info: %s", Msg.Entry.GetInfo().c_str());
+
+                ImGui::SameLine();
+                if (ImGui::Selectable(LogStrings[StringIdx].c_str()))
+                {
+
+                }
+
+                StringIdx++;
             }
-            else
-            {
-                ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "[Desync]");
-            }
-
-            ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Frame[%d]", Msg.FrameIdx);
-
-            ImGui::SameLine();
-            ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "[%s]", Msg.Entry.GetCategory().c_str());
-
-            ImGui::SameLine();
-
-            const size_t StringBufferLength = 256;
-            LogStrings[StringIdx].resize(StringBufferLength, 0);
-
-            ImGui::SameLine();
-            ImGui::Text("Entry:");
-
-            ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "%s", Msg.Entry.GetName().c_str());
-
-            std::snprintf(&LogStrings[StringIdx][0], StringBufferLength, "Info: %s", Msg.Entry.GetInfo().c_str());
-            
-            ImGui::SameLine();
-            if (ImGui::Selectable(LogStrings[StringIdx].c_str()))
-            {
-
-            }
-
-            StringIdx++;
         }
+
+        ImGui::EndChild();
     }
 
     ImGui::End();
