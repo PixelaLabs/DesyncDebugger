@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <map>
+
 #include <string>
 
 class AppState;
@@ -19,8 +21,10 @@ protected:
     void DrawLogView(AppState& AppState);
 
 protected:
+    // key - Entry Name, value - Sync state
+    std::map<std::string, bool> EntryData;
+
     std::vector<std::string> LogStrings;
-    std::vector<std::string> EntryNames;
     std::vector<std::string> CategoryNames;
 
     std::vector<MsgEntry> FilteredMsgs;

@@ -28,14 +28,14 @@ void AppUI::DrawMainMenu(AppState& AppState)
                 AppState.UpdateClusterData("");
 
                 FilteredMsgs.clear();
-                EntryNames.clear();
+                EntryData.clear();
                 CategoryNames.clear();
 
                 auto const& Results = AppState.GetComparisonResults();
 
                 Results.FilterByMsgType(MsgType::All, FilteredMsgs);
 
-                Results.GetEntryNames(EntryNames);
+                Results.GetEntryData(EntryData);
                 Results.GetCategoryNames(CategoryNames);
             }
 
@@ -57,14 +57,34 @@ void AppUI::DrawEntryView()
     }
     ImGui::SameLine();
     EntriesFilter.Draw("Filter", -100.0f);
+    
+    ImGui::Separator();
 
-    for (auto const& EntryName : EntryNames)
+    for (auto const& Data : EntryData)
     {
+        auto const& EntryName = Data.first;
+        bool SyncState = Data.second;
+
         if (!EntriesFilter.PassFilter(EntryName.c_str()))
         {
             continue;
         }
 
+        if (SyncState)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.06f, 0.6f, 0.06f, 0.94f));
+            ImGui::Text("V");
+        }
+        else
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.06f, 0.06f, 0.94f));
+            ImGui::Text("X");
+        }
+
+
+        ImGui::PopStyleColor();
+
+        ImGui::SameLine();
         if (ImGui::Selectable(EntryName.c_str(), false))
         {
             LogFilter.Clear();
@@ -89,6 +109,8 @@ void AppUI::DrawCategoryView()
     }
     ImGui::SameLine();
     CategoryFilter.Draw("Filter", -100.0f);
+
+    ImGui::Separator();
 
     for (auto const& CategoryName : CategoryNames)
     {
