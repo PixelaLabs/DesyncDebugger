@@ -15,28 +15,22 @@ void AppUI::DrawUI(AppState& AppState)
 
     DrawEntryView();
     DrawCategoryView();
+
+    if (bShowControlPanelWindow)
+    {
+        DrawControlPanelView(AppState);
+    }
 }
 
 void AppUI::DrawMainMenu(AppState& AppState)
 {
     if (ImGui::BeginMainMenuBar())
     {
-        if (ImGui::BeginMenu("File"))
+        if (ImGui::BeginMenu("View"))
         {
-            if (ImGui::MenuItem("Load Log Files"))
+            if (ImGui::MenuItem("Control Panel"))
             {
-                AppState.UpdateClusterData("");
-
-                FilteredMsgs.clear();
-                EntryData.clear();
-                CategoryNames.clear();
-
-                auto const& Results = AppState.GetComparisonResults();
-
-                Results.FilterByMsgType(MsgType::All, FilteredMsgs);
-
-                Results.GetEntryData(EntryData);
-                Results.GetCategoryNames(CategoryNames);
+                bShowControlPanelWindow = true;
             }
 
             ImGui::EndMenu();
@@ -83,7 +77,6 @@ void AppUI::DrawEntryView()
                 ImGui::Text("X");
             }
 
-
             ImGui::PopStyleColor();
 
             ImGui::SameLine();
@@ -96,6 +89,7 @@ void AppUI::DrawEntryView()
                 LogFilter.Build();
             }
         }
+        ImGui::EndChild();
     }
 
     ImGui::End();
@@ -154,31 +148,45 @@ void AppUI::DrawLogView(AppState& AppState)
         ImGui::End();
         return;
     }
+    
+    static MsgType MsgCurrentState = MsgType::All;
 
-    if (ImGui::Button("[All]"))
+    if (ImGui::RadioButton("[All]", MsgCurrentState == MsgType::All))
     {
         auto const& Results = AppState.GetComparisonResults();
 
         FilteredMsgs.clear();
         Results.FilterByMsgType(MsgType::All, FilteredMsgs);
+
+        MsgCurrentState = MsgType::All;
     }
 
+
     ImGui::SameLine();
-    if (ImGui::Button("[Sync]"))
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 0.94f));
+    if (ImGui::RadioButton("[Sync]", MsgCurrentState == MsgType::Sync))
     {
         auto const& Results = AppState.GetComparisonResults();
 
         FilteredMsgs.clear();
         Results.FilterByMsgType(MsgType::Sync, FilteredMsgs);
+
+        MsgCurrentState = MsgType::Sync;
     }
+    ImGui::PopStyleColor();
+
     ImGui::SameLine();
-    if (ImGui::Button("[Desync]"))
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.0f, 0.0f, 0.94f));
+    if (ImGui::RadioButton("[Desync]", MsgCurrentState == MsgType::Desync))
     {
         auto const& Results = AppState.GetComparisonResults();
 
         FilteredMsgs.clear();
         Results.FilterByMsgType(MsgType::Desync, FilteredMsgs);
+
+        MsgCurrentState = MsgType::Desync;
     }
+    ImGui::PopStyleColor();
 
     ImGui::SameLine();
     if (ImGui::Button("X"))
@@ -192,9 +200,7 @@ void AppUI::DrawLogView(AppState& AppState)
 
     if (ImGui::BeginChild("LogViewScrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
     {
-        LogStrings.resize(FilteredMsgs.size());
-
-        int StringIdx = 0;
+        int StringIdx = 324820348390;
 
         for (auto const& Msg : FilteredMsgs)
         {
@@ -218,25 +224,41 @@ void AppUI::DrawLogView(AppState& AppState)
                 ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "[%s]", Msg.Entry.GetCategory().c_str());
 
                 ImGui::SameLine();
-
-                const size_t StringBufferLength = 256;
-                LogStrings[StringIdx].resize(StringBufferLength, 0);
-
-                ImGui::SameLine();
                 ImGui::Text("Entry:");
 
                 ImGui::SameLine();
-                ImGui::TextColored(ImVec4(1.0f, 0.0f, 1.0f, 1.0f), "%s", Msg.Entry.GetName().c_str());
 
-                std::snprintf(&LogStrings[StringIdx][0], StringBufferLength, "Info: %s", Msg.Entry.GetInfo().c_str());
+                ImGui::PushID(StringIdx);
 
-                ImGui::SameLine();
-                if (ImGui::Selectable(LogStrings[StringIdx].c_str()))
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.0f, 0.8f, 0.94f));
+
+                if (ImGui::Selectable(Msg.Entry.GetName().c_str(), false,
+                    ImGuiSelectableFlags_None, ImGui::CalcTextSize(Msg.Entry.GetName().c_str())))
                 {
-
+                    ImGuiIO& io = ImGui::GetIO();
+                    io.SetClipboardTextFn(nullptr, Msg.Entry.GetName().c_str());
                 }
 
-                StringIdx++;
+                ImGui::PopStyleColor();
+
+                ImGui::SameLine();
+                ImGui::Text("Info:");
+
+                ImGui::PushID(StringIdx);
+
+                ImGui::SameLine();
+                
+                if (ImGui::Selectable(Msg.Entry.GetInfo().c_str(), false, 
+                    ImGuiSelectableFlags_None, ImGui::CalcTextSize(Msg.Entry.GetInfo().c_str())))
+                {
+                    ImGuiIO& io = ImGui::GetIO();
+                    io.SetClipboardTextFn(nullptr, Msg.Entry.GetInfo().c_str());
+                }
+
+                ImGui::PopID();
+                ImGui::PopID();
+
+                StringIdx += 2;
             }
         }
 
@@ -244,4 +266,43 @@ void AppUI::DrawLogView(AppState& AppState)
     }
 
     ImGui::End();
+}
+
+void AppUI::DrawControlPanelView(AppState& AppState)
+{
+    ImGui::SetNextWindowSize(ImVec2(800, 80), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Control Panel", &bShowControlPanelWindow))
+    {
+        static char WorkingDirectoryPath[1024] = { '\0' };
+        strcpy_s(WorkingDirectoryPath, AppState.GetSearchFolder().c_str());
+
+        if (ImGui::InputText("Working Directory", WorkingDirectoryPath, 1024))
+        {
+            AppState.SetSearchFolder(WorkingDirectoryPath);
+        }
+
+        if (ImGui::Button("Load Logs"))
+        {
+            UpdateClusterDataUI(AppState);
+        }
+
+        ImGui::End();
+    }
+}
+
+void AppUI::UpdateClusterDataUI(AppState& AppState)
+{
+    AppState.UpdateClusterData();
+
+    FilteredMsgs.clear();
+    EntryData.clear();
+    CategoryNames.clear();
+
+    auto const& Results = AppState.GetComparisonResults();
+
+    Results.FilterByMsgType(MsgType::All, FilteredMsgs);
+
+    Results.GetEntryData(EntryData);
+    Results.GetCategoryNames(CategoryNames);
 }

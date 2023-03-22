@@ -19,13 +19,17 @@ protected:
     void DrawEntryView();
     void DrawCategoryView();
     void DrawLogView(AppState& AppState);
+    void DrawControlPanelView(AppState& AppState);
 
 protected:
+    void UpdateClusterDataUI(AppState& AppState);
+
+protected:
+    bool bShowControlPanelWindow = true;
+
     // key - Entry Name, value - Sync state
     std::map<std::string, bool> EntryData;
 
-    std::vector<std::string> LogStrings;
     std::vector<std::string> CategoryNames;
-
     std::vector<MsgEntry> FilteredMsgs;
 };
