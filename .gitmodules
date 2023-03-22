@@ -5,3 +5,6 @@
 [submodule "src/ThirdParty/DesyncCompare"]
 	path = src/ThirdParty/DesyncCompare
 	url = https://github.com/d-rubalskyi/DesyncCompare.git
+[submodule "src/ThirdParty/ImPlot"]
+	path = src/ThirdParty/ImPlot
+	url = https://github.com/epezent/implot.git

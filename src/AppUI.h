@@ -20,12 +20,16 @@ protected:
     void DrawCategoryView();
     void DrawLogView(AppState& AppState);
     void DrawControlPanelView(AppState& AppState);
+    void DrawFrameDebuggerView(AppState& AppState);
 
 protected:
     void UpdateClusterDataUI(AppState& AppState);
 
 protected:
     bool bShowControlPanelWindow = true;
+
+    std::vector<float> SyncedFrames;
+    std::vector<float> UnsyncedFrames;
 
     // key - Entry Name, value - Sync state
     std::map<std::string, bool> EntryData;

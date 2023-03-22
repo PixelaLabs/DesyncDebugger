@@ -16,6 +16,7 @@ include_directories(../imgui)
 include_directories(../SDL/include)
 
 set (IMGUI_SRC 
+    ../imgui/imgui_demo.cpp
     ../imgui/imgui.cpp
     ../imgui/imgui.h
     ../imgui/imgui_draw.cpp

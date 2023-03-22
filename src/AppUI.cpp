@@ -3,6 +3,7 @@
 #include "AppState.h"
 
 #include "imgui.h"
+#include "implot.h"
 
 static ImGuiTextFilter LogFilter;
 static ImGuiTextFilter EntriesFilter;
@@ -20,6 +21,8 @@ void AppUI::DrawUI(AppState& AppState)
     {
         DrawControlPanelView(AppState);
     }
+    
+    DrawFrameDebuggerView(AppState);
 }
 
 void AppUI::DrawMainMenu(AppState& AppState)
@@ -294,6 +297,31 @@ void AppUI::DrawControlPanelView(AppState& AppState)
     }
 }
 
+void AppUI::DrawFrameDebuggerView(AppState& AppState)
+{
+    ImGui::SetNextWindowSize(ImVec2(800, 500), ImGuiCond_FirstUseEver);
+
+    if (ImGui::Begin("Frame Plot", &bShowControlPanelWindow))
+    {
+        if (ImPlot::BeginPlot("Frames")) 
+        {
+            ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_AutoFit);
+
+            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(0.0f, 0.9f, 0.0f, 0.8f));
+            ImPlot::PlotBars("[Sync]", SyncedFrames.data(), SyncedFrames.size(), 0.1, 0.0f);
+            ImPlot::PopStyleColor();
+
+            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(0.8f, 0.0f, 0.0f, 0.8f));
+            ImPlot::PlotBars("[Desync]", UnsyncedFrames.data(), UnsyncedFrames.size(), 0.1, 0.0f);
+            ImPlot::PopStyleColor();
+
+            ImPlot::EndPlot();
+        }
+
+        ImGui::End();
+    }
+}
+
 void AppUI::UpdateClusterDataUI(AppState& AppState)
 {
     AppState.UpdateClusterData();
@@ -308,4 +336,13 @@ void AppUI::UpdateClusterDataUI(AppState& AppState)
 
     Results.GetEntryData(EntryData);
     Results.GetCategoryNames(CategoryNames);
+    Results.GetSyncFramesState(SyncedFrames);
+
+    UnsyncedFrames.resize(SyncedFrames.size());
+
+    for (size_t i = 0; i < SyncedFrames.size(); i++)
+    {
+        UnsyncedFrames[i] = (SyncedFrames[i]) == 0.5f ? 1.0f : 0.0f;
+        SyncedFrames[i] = (UnsyncedFrames[i]) == 0.0f ? 0.5f : 0.0f;
+    }
 }

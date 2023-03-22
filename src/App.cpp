@@ -7,6 +7,8 @@
 #include "SDL3/SDL.h"
 
 #include "imgui.h"
+#include "implot.h"
+
 #include "backends/imgui_impl_sdl3.h"
 #include "backends/imgui_impl_sdlrenderer.h"
 
@@ -115,6 +117,8 @@ bool App::Init(uint32_t InWindowWidth, uint32_t InWindowHeight)
         SDL_Log("Could not create OpenGL3 renderer for ImGui");
         return false;   
     }
+
+    ImPlot::CreateContext();
 
     _quit = false;
     _showProfiler = true;
