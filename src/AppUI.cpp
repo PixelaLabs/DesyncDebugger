@@ -224,6 +224,9 @@ void AppUI::DrawLogView(AppState& AppState)
                 ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "[%s]", Msg.Entry.GetCategory().c_str());
 
                 ImGui::SameLine();
+                ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Line[%d]", Msg.Entry.GetLineNumber());
+
+                ImGui::SameLine();
                 ImGui::Text("Entry:");
 
                 ImGui::SameLine();
