@@ -92,8 +92,8 @@ void AppUI::DrawEntryView()
                 LogFilter.Build();
             }
         }
-        ImGui::EndChild();
     }
+    ImGui::EndChild();
 
     ImGui::End();
 }
@@ -130,9 +130,8 @@ void AppUI::DrawCategoryView()
                 LogFilter.Build();
             }
         }
-
-        ImGui::EndChild();
     }
+    ImGui::EndChild();
 
     ImGui::End();
 }
@@ -267,9 +266,8 @@ void AppUI::DrawLogView(AppState& AppState)
                 StringIdx += 2;
             }
         }
-
-        ImGui::EndChild();
     }
+    ImGui::EndChild();
 
     ImGui::End();
 }
