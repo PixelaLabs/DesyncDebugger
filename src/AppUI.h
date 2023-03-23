@@ -26,6 +26,8 @@ protected:
     void UpdateClusterDataUI(AppState& AppState);
 
 protected:
+    int CurrentFrameFilterIndex = -1;
+
     bool bShowControlPanelWindow = true;
 
     std::vector<float> SyncedFrames;

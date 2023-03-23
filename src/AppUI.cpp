@@ -11,6 +11,8 @@ static ImGuiTextFilter CategoryFilter;
 
 void AppUI::DrawUI(AppState& AppState)
 {
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+
     DrawMainMenu(AppState);
     DrawLogView(AppState);
 
@@ -23,6 +25,8 @@ void AppUI::DrawUI(AppState& AppState)
     }
     
     DrawFrameDebuggerView(AppState);
+
+    ImGui::PopStyleVar();
 }
 
 void AppUI::DrawMainMenu(AppState& AppState)
@@ -196,7 +200,7 @@ void AppUI::DrawLogView(AppState& AppState)
         LogFilter.Clear();
     }
     ImGui::SameLine();
-    LogFilter.Draw("Filter", -100.0f);
+    LogFilter.Draw("Filter", -100);
 
     ImGui::Separator();
 
@@ -206,6 +210,14 @@ void AppUI::DrawLogView(AppState& AppState)
 
         for (auto const& Msg : FilteredMsgs)
         {
+            if (CurrentFrameFilterIndex != -1)
+            {
+                if (CurrentFrameFilterIndex != int(Msg.FrameIdx))
+                {
+                    continue;
+                }
+            }
+
             if (LogFilter.PassFilter(Msg.Entry.GetName().c_str())
                 || LogFilter.PassFilter(Msg.Entry.GetInfo().c_str())
                 || LogFilter.PassFilter(Msg.Entry.GetCategory().c_str()))
@@ -301,17 +313,72 @@ void AppUI::DrawFrameDebuggerView(AppState& AppState)
 
     if (ImGui::Begin("Frame Plot", &bShowControlPanelWindow))
     {
-        if (ImPlot::BeginPlot("Frames")) 
+        ImGui::PushID(123);
+        if (ImGui::Button("X"))
         {
-            ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_AutoFit);
+            CurrentFrameFilterIndex = -1;
+        }
+        ImGui::PopID();
 
-            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(0.0f, 0.9f, 0.0f, 0.8f));
-            ImPlot::PlotBars("[Sync]", SyncedFrames.data(), SyncedFrames.size(), 0.1, 0.0f);
-            ImPlot::PopStyleColor();
+        ImGui::SameLine();
 
-            ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(0.8f, 0.0f, 0.0f, 0.8f));
-            ImPlot::PlotBars("[Desync]", UnsyncedFrames.data(), UnsyncedFrames.size(), 0.1, 0.0f);
-            ImPlot::PopStyleColor();
+        ImGui::PushItemWidth(-100);
+        if (ImGui::InputInt("Filter", &CurrentFrameFilterIndex, 1))
+        {
+            CurrentFrameFilterIndex = std::max(-1, CurrentFrameFilterIndex);
+        }
+        ImGui::PopItemWidth();
+
+        if (ImPlot::BeginPlot("###Frames")) 
+        {
+            ImPlot::SetupAxes(NULL, NULL, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
+            
+            int SelectedFrame = -1;
+            
+            if (ImPlot::IsPlotHovered())
+            {
+                ImPlotPoint PlotPoint = ImPlot::GetPlotMousePos();
+
+                SelectedFrame = std::min(int(SyncedFrames.size()), int(PlotPoint.x));
+
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                {
+                    CurrentFrameFilterIndex = SelectedFrame;
+                }
+            }
+
+            if (!SyncedFrames.empty())
+            {
+                std::vector<float> SelectedFrameLocal = { 0.0f };
+
+                ImVec4 SelectedFrameColor;;
+
+                if (SelectedFrame != -1)
+                {
+                    if (SyncedFrames[SelectedFrame] > 0.0f)
+                    {
+                        SelectedFrameLocal[0] = 0.5f;
+                        SelectedFrameColor = ImVec4(0.0f, 1.0f, 1.0f, 1.0f);
+                    }
+                    else
+                    {
+                        SelectedFrameLocal[0] = 1.0f;
+                        SelectedFrameColor = ImVec4(0.0f, 1.0f, 1.0f, 1.0f);
+                    }
+                }
+
+                ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(0.3f, 0.9f, 0.3f, 0.5f));
+                ImPlot::PlotBars("[Sync]", SyncedFrames.data(), SyncedFrames.size(), 0.1, 0.0f);
+                ImPlot::PopStyleColor();
+
+                ImPlot::PushStyleColor(ImPlotCol_Fill, ImVec4(0.8f, 0.0f, 0.0f, 0.5f));
+                ImPlot::PlotBars("[Desync]", UnsyncedFrames.data(), UnsyncedFrames.size(), 0.1, 0.0f);
+                ImPlot::PopStyleColor();
+
+                ImPlot::PushStyleColor(ImPlotCol_Fill, SelectedFrameColor);
+                ImPlot::PlotBars("##[SelectedFrame]", SelectedFrameLocal.data(), SelectedFrameLocal.size(), 0.1, SelectedFrame);
+                ImPlot::PopStyleColor();
+            }
 
             ImPlot::EndPlot();
         }
@@ -323,6 +390,8 @@ void AppUI::DrawFrameDebuggerView(AppState& AppState)
 void AppUI::UpdateClusterDataUI(AppState& AppState)
 {
     AppState.UpdateClusterData();
+
+    CurrentFrameFilterIndex = -1;
 
     FilteredMsgs.clear();
     EntryData.clear();
