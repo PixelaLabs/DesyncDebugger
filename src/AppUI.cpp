@@ -206,10 +206,14 @@ void AppUI::DrawLogView(AppState& AppState)
 
     if (ImGui::BeginChild("LogViewScrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
     {
-        int StringIdx = 324820348390;
+        int MsgIdx = 0;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 
         for (auto const& Msg : FilteredMsgs)
         {
+            ImGui::PushID(MsgIdx);
+
             if (CurrentFrameFilterIndex != -1)
             {
                 if (CurrentFrameFilterIndex != int(Msg.FrameIdx))
@@ -238,14 +242,45 @@ void AppUI::DrawLogView(AppState& AppState)
                 ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "[%s]", Msg.Entry.GetCategory().c_str());
 
                 ImGui::SameLine();
-                ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "Line[%d]", Msg.Entry.GetLineNumber());
+                ImGui::Text("[");
+
+                for (size_t NodeIdx = 0; NodeIdx < Msg.LineIndices.size(); NodeIdx++)
+                {
+                    int LineIdx = Msg.LineIndices[NodeIdx];
+
+                    ImGui::SameLine();
+                    if (LineIdx == -1)
+                    {
+                        ImGui::Button("None");
+                    }
+                    else
+                    if (ImGui::Button(std::to_string(LineIdx).c_str()))
+                    {
+                        std::string NodeFileName = "Node_" + std::to_string(NodeIdx) + ".log";
+
+                        std::string LineName = ":" + std::to_string(Msg.LineIndices[NodeIdx]);
+
+                        std::string cmd = std::string("Code.exe --goto \"" + AppState.GetSearchFolder() + "\\"
+                            + NodeFileName + LineName + "\" &");
+
+                        std::system(cmd.c_str());
+                    }
+
+                    if (NodeIdx != Msg.LineIndices.size() - 1)
+                    {
+                        ImGui::SameLine();
+                        ImGui::Text(",");
+                    }
+                }
+
+
+                ImGui::SameLine();
+                ImGui::Text("]");
 
                 ImGui::SameLine();
                 ImGui::Text("Entry:");
 
                 ImGui::SameLine();
-
-                ImGui::PushID(StringIdx);
 
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.0f, 0.8f, 0.94f));
 
@@ -261,8 +296,6 @@ void AppUI::DrawLogView(AppState& AppState)
                 ImGui::SameLine();
                 ImGui::Text("Info:");
 
-                ImGui::PushID(StringIdx);
-
                 ImGui::SameLine();
                 
                 if (ImGui::Selectable(Msg.Entry.GetInfo().c_str(), false, 
@@ -273,11 +306,12 @@ void AppUI::DrawLogView(AppState& AppState)
                 }
 
                 ImGui::PopID();
-                ImGui::PopID();
 
-                StringIdx += 2;
+                MsgIdx++;
             }
         }
+
+        ImGui::PopStyleVar();
     }
     ImGui::EndChild();
 
@@ -302,9 +336,9 @@ void AppUI::DrawControlPanelView(AppState& AppState)
         {
             UpdateClusterDataUI(AppState);
         }
-
-        ImGui::End();
     }
+
+    ImGui::End();
 }
 
 void AppUI::DrawFrameDebuggerView(AppState& AppState)
