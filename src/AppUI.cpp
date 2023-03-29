@@ -199,108 +199,116 @@ void AppUI::DrawLogView(AppState& AppState)
         
         if (ImGui::BeginChild("LogViewScrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
         {
-            int MsgIdx = 0;
+            ImGuiListClipper Clipper;
+
+            Clipper.Begin(FilteredMsgs.size());
 
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
 
-            for (auto const& Msg : FilteredMsgs)
+            while (Clipper.Step())
             {
-                if (CurrentFrameFilterIndex != -1)
+                for (int MsgIdx = Clipper.DisplayStart; MsgIdx < Clipper.DisplayEnd; MsgIdx++)
                 {
-                    if (CurrentFrameFilterIndex != int(Msg.FrameIdx))
+                    const auto& Msg = FilteredMsgs[MsgIdx];
+
+                    if (CurrentFrameFilterIndex != -1)
                     {
-                        continue;
-                    }
-                }
-
-                ImGui::PushID(MsgIdx);
-
-                if (LogFilter.PassFilter(Msg.Entry.GetName().c_str())
-                    || LogFilter.PassFilter(Msg.Entry.GetInfo().c_str())
-                    || LogFilter.PassFilter(Msg.Entry.GetCategory().c_str()))
-                {
-                    if (Msg.Type == MsgType::Sync)
-                    {
-                        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "[Sync]");
-                    }
-                    else
-                    {
-                        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "[Desync]");
-                    }
-
-                    ImGui::SameLine();
-                    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Frame[%d]", Msg.FrameIdx);
-
-                    ImGui::SameLine();
-                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "[%s]", Msg.Entry.GetCategory().c_str());
-
-                    ImGui::SameLine();
-                    ImGui::Text("[");
-                    
-                    for (size_t NodeIdx = 0; NodeIdx < Msg.LineIndices.size(); NodeIdx++)
-                    {
-                        int LineIdx = Msg.LineIndices[NodeIdx];
-
-                        ImGui::SameLine();
-                        if (LineIdx == -1)
+                        if (CurrentFrameFilterIndex != int(Msg.FrameIdx))
                         {
-                            ImGui::Button("None");
+                            continue;
+                        }
+                    }
+
+                    ImGui::PushID(MsgIdx);
+
+                    if (LogFilter.PassFilter(Msg.Entry.GetName().c_str())
+                        || LogFilter.PassFilter(Msg.Entry.GetInfo().c_str())
+                        || LogFilter.PassFilter(Msg.Entry.GetCategory().c_str()))
+                    {
+                        if (Msg.Type == MsgType::Sync)
+                        {
+                            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "[Sync]");
                         }
                         else
-                            if (ImGui::Button(std::to_string(LineIdx).c_str()))
+                        {
+                            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "[Desync]");
+                        }
+
+                        ImGui::SameLine();
+                        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Frame[%d]", Msg.FrameIdx);
+
+                        ImGui::SameLine();
+                        ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "[%s]", Msg.Entry.GetCategory().c_str());
+
+                        ImGui::SameLine();
+                        ImGui::Text("[");
+
+                        for (size_t NodeIdx = 0; NodeIdx < Msg.LineIndices.size(); NodeIdx++)
+                        {
+                            int LineIdx = Msg.LineIndices[NodeIdx];
+
+                            ImGui::SameLine();
+
+                            if (LineIdx == -1)
                             {
-                                std::string NodeFileName = "Node_" + std::to_string(NodeIdx) + ".log";
+                                ImGui::Button("None");
+                            }
+                            else
+                            {
+                                if (ImGui::Button(std::to_string(LineIdx).c_str()))
+                                {
+                                    std::string NodeFileName = "Node_" + std::to_string(NodeIdx) + ".log";
 
-                                std::string LineName = ":" + std::to_string(Msg.LineIndices[NodeIdx]);
+                                    std::string LineName = ":" + std::to_string(Msg.LineIndices[NodeIdx]);
 
-                                std::string Cmd = std::string("Code.exe --goto \"" + AppState.GetSearchFolder() + "\\"
-                                    + NodeFileName + LineName + "\" &");
+                                    std::string Cmd = std::string("Code.exe --goto \"" + AppState.GetSearchFolder() + "\\"
+                                        + NodeFileName + LineName + "\" &");
 
-                                std::system(Cmd.c_str());
+                                    std::system(Cmd.c_str());
+                                }
                             }
 
-                        if (NodeIdx != Msg.LineIndices.size() - 1)
+                            if (NodeIdx != Msg.LineIndices.size() - 1)
+                            {
+                                ImGui::SameLine();
+                                ImGui::Text(",");
+                            }
+                        }
+
+                        ImGui::SameLine();
+                        ImGui::Text("]");
+
+                        ImGui::SameLine();
+                        ImGui::Text("Entry:");
+
+                        ImGui::SameLine();
+
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.0f, 0.8f, 0.94f));
+
+                        if (ImGui::Selectable(Msg.Entry.GetName().c_str(), false,
+                            ImGuiSelectableFlags_None, ImGui::CalcTextSize(Msg.Entry.GetName().c_str())))
                         {
-                            ImGui::SameLine();
-                            ImGui::Text(",");
+                            ImGuiIO& io = ImGui::GetIO();
+                            io.SetClipboardTextFn(nullptr, Msg.Entry.GetName().c_str());
+                        }
+
+                        ImGui::PopStyleColor();
+
+                        ImGui::SameLine();
+                        ImGui::Text("Info:");
+
+                        ImGui::SameLine();
+
+                        if (ImGui::Selectable(Msg.Entry.GetInfo().c_str(), false,
+                            ImGuiSelectableFlags_None, ImGui::CalcTextSize(Msg.Entry.GetInfo().c_str())))
+                        {
+                            ImGuiIO& io = ImGui::GetIO();
+                            io.SetClipboardTextFn(nullptr, Msg.Entry.GetInfo().c_str());
                         }
                     }
-                    
-                    ImGui::SameLine();
-                    ImGui::Text("]");
 
-                    ImGui::SameLine();
-                    ImGui::Text("Entry:");
-
-                    ImGui::SameLine();
-
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.0f, 0.8f, 0.94f));
-
-                    if (ImGui::Selectable(Msg.Entry.GetName().c_str(), false,
-                        ImGuiSelectableFlags_None, ImGui::CalcTextSize(Msg.Entry.GetName().c_str())))
-                    {
-                        ImGuiIO& io = ImGui::GetIO();
-                        io.SetClipboardTextFn(nullptr, Msg.Entry.GetName().c_str());
-                    }
-
-                    ImGui::PopStyleColor();
-                    
-                    ImGui::SameLine();
-                    ImGui::Text("Info:");
-
-                    ImGui::SameLine();
-
-                    if (ImGui::Selectable(Msg.Entry.GetInfo().c_str(), false,
-                        ImGuiSelectableFlags_None, ImGui::CalcTextSize(Msg.Entry.GetInfo().c_str())))
-                    {
-                        ImGuiIO& io = ImGui::GetIO();
-                        io.SetClipboardTextFn(nullptr, Msg.Entry.GetInfo().c_str());
-                    }
-
-                    MsgIdx++;
+                    ImGui::PopID();
                 }
-
-                ImGui::PopID();
             }
 
             ImGui::PopStyleVar();
