@@ -24,7 +24,7 @@ protected:
 
 protected:
     void UpdateClusterDataUI(AppState& AppState);
-
+    void FilterMessages(std::vector<MsgEntry> const& InMsgs, std::vector<MsgEntry>& OutMessages);
 protected:
     int CurrentFrameFilterIndex = -1;
 
@@ -37,5 +37,7 @@ protected:
     std::map<std::string, bool> EntryData;
 
     std::vector<std::string> CategoryNames;
+    
+    std::vector<MsgEntry> TypeFilteredMsgs;
     std::vector<MsgEntry> FilteredMsgs;
 };

@@ -94,6 +94,8 @@ void AppUI::DrawEntryView()
                 std::strcpy(LogFilter.InputBuf, EntryName.c_str());
 
                 LogFilter.Build();
+
+                FilterMessages(TypeFilteredMsgs, FilteredMsgs);
             }
         }
     }
@@ -132,6 +134,8 @@ void AppUI::DrawCategoryView()
                 std::strcpy(LogFilter.InputBuf, CategoryName.c_str());
 
                 LogFilter.Build();
+
+                FilterMessages(TypeFilteredMsgs, FilteredMsgs);
             }
         }
     }
@@ -154,12 +158,11 @@ void AppUI::DrawLogView(AppState& AppState)
         {
             auto const& Results = AppState.GetComparisonResults();
 
-            FilteredMsgs.clear();
-            Results.FilterByMsgType(MsgType::All, FilteredMsgs);
+            Results.FilterByMsgType(MsgType::All, TypeFilteredMsgs);
+            FilterMessages(TypeFilteredMsgs, FilteredMsgs);
 
             MsgCurrentState = MsgType::All;
         }
-
 
         ImGui::SameLine();
         ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 0.94f));
@@ -167,8 +170,8 @@ void AppUI::DrawLogView(AppState& AppState)
         {
             auto const& Results = AppState.GetComparisonResults();
 
-            FilteredMsgs.clear();
-            Results.FilterByMsgType(MsgType::Sync, FilteredMsgs);
+            Results.FilterByMsgType(MsgType::Sync, TypeFilteredMsgs);
+            FilterMessages(TypeFilteredMsgs, FilteredMsgs);
 
             MsgCurrentState = MsgType::Sync;
         }
@@ -180,8 +183,8 @@ void AppUI::DrawLogView(AppState& AppState)
         {
             auto const& Results = AppState.GetComparisonResults();
 
-            FilteredMsgs.clear();
-            Results.FilterByMsgType(MsgType::Desync, FilteredMsgs);
+            Results.FilterByMsgType(MsgType::Desync, TypeFilteredMsgs);
+            FilterMessages(TypeFilteredMsgs, FilteredMsgs);
 
             MsgCurrentState = MsgType::Desync;
         }
@@ -191,6 +194,7 @@ void AppUI::DrawLogView(AppState& AppState)
         if (ImGui::Button("X"))
         {
             LogFilter.Clear();
+            FilterMessages(TypeFilteredMsgs, FilteredMsgs);
         }
         ImGui::SameLine();
         LogFilter.Draw("Filter", -100);
@@ -199,11 +203,10 @@ void AppUI::DrawLogView(AppState& AppState)
         
         if (ImGui::BeginChild("LogViewScrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
         {
-            ImGuiListClipper Clipper;
-
-            Clipper.Begin(FilteredMsgs.size());
-
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
+
+            ImGuiListClipper Clipper;
+            Clipper.Begin(FilteredMsgs.size());
 
             while (Clipper.Step())
             {
@@ -211,100 +214,87 @@ void AppUI::DrawLogView(AppState& AppState)
                 {
                     const auto& Msg = FilteredMsgs[MsgIdx];
 
-                    if (CurrentFrameFilterIndex != -1)
-                    {
-                        if (CurrentFrameFilterIndex != int(Msg.FrameIdx))
-                        {
-                            continue;
-                        }
-                    }
-
                     ImGui::PushID(MsgIdx);
 
-                    if (LogFilter.PassFilter(Msg.Entry.GetName().c_str())
-                        || LogFilter.PassFilter(Msg.Entry.GetInfo().c_str())
-                        || LogFilter.PassFilter(Msg.Entry.GetCategory().c_str()))
+                    if (Msg.Type == MsgType::Sync)
                     {
-                        if (Msg.Type == MsgType::Sync)
+                        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "[Sync]");
+                    }
+                    else
+                    {
+                        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "[Desync]");
+                    }
+
+                    ImGui::SameLine();
+                    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Frame[%d]", Msg.FrameIdx);
+
+                    ImGui::SameLine();
+                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "[%s]", Msg.Entry.GetCategory().c_str());
+
+                    ImGui::SameLine();
+                    ImGui::Text("[");
+
+                    for (size_t NodeIdx = 0; NodeIdx < Msg.LineIndices.size(); NodeIdx++)
+                    {
+                        int LineIdx = Msg.LineIndices[NodeIdx];
+
+                        ImGui::SameLine();
+
+                        if (LineIdx == -1)
                         {
-                            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "[Sync]");
+                            ImGui::Button("None");
                         }
                         else
                         {
-                            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "[Desync]");
+                            if (ImGui::Button(std::to_string(LineIdx).c_str()))
+                            {
+                                std::string NodeFileName = "Node_" + std::to_string(NodeIdx) + ".log";
+
+                                std::string LineName = ":" + std::to_string(Msg.LineIndices[NodeIdx]);
+
+                                std::string Cmd = std::string("Code.exe --goto \"" + AppState.GetSearchFolder() + "\\"
+                                    + NodeFileName + LineName + "\" &");
+
+                                std::system(Cmd.c_str());
+                            }
                         }
 
-                        ImGui::SameLine();
-                        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Frame[%d]", Msg.FrameIdx);
-
-                        ImGui::SameLine();
-                        ImGui::TextColored(ImVec4(0.0f, 1.0f, 1.0f, 1.0f), "[%s]", Msg.Entry.GetCategory().c_str());
-
-                        ImGui::SameLine();
-                        ImGui::Text("[");
-
-                        for (size_t NodeIdx = 0; NodeIdx < Msg.LineIndices.size(); NodeIdx++)
+                        if (NodeIdx != Msg.LineIndices.size() - 1)
                         {
-                            int LineIdx = Msg.LineIndices[NodeIdx];
-
                             ImGui::SameLine();
-
-                            if (LineIdx == -1)
-                            {
-                                ImGui::Button("None");
-                            }
-                            else
-                            {
-                                if (ImGui::Button(std::to_string(LineIdx).c_str()))
-                                {
-                                    std::string NodeFileName = "Node_" + std::to_string(NodeIdx) + ".log";
-
-                                    std::string LineName = ":" + std::to_string(Msg.LineIndices[NodeIdx]);
-
-                                    std::string Cmd = std::string("Code.exe --goto \"" + AppState.GetSearchFolder() + "\\"
-                                        + NodeFileName + LineName + "\" &");
-
-                                    std::system(Cmd.c_str());
-                                }
-                            }
-
-                            if (NodeIdx != Msg.LineIndices.size() - 1)
-                            {
-                                ImGui::SameLine();
-                                ImGui::Text(",");
-                            }
+                            ImGui::Text(",");
                         }
+                    }
 
-                        ImGui::SameLine();
-                        ImGui::Text("]");
+                    ImGui::SameLine();
+                    ImGui::Text("]");
 
-                        ImGui::SameLine();
-                        ImGui::Text("Entry:");
+                    ImGui::SameLine();
+                    ImGui::Text("Entry:");
 
-                        ImGui::SameLine();
+                    ImGui::SameLine();
 
-                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.0f, 0.8f, 0.94f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.0f, 0.8f, 0.94f));
 
-                        if (ImGui::Selectable(Msg.Entry.GetName().c_str(), false,
-                            ImGuiSelectableFlags_None, ImGui::CalcTextSize(Msg.Entry.GetName().c_str())))
-                        {
-                            ImGuiIO& io = ImGui::GetIO();
-                            io.SetClipboardTextFn(nullptr, Msg.Entry.GetName().c_str());
-                        }
+                    if (ImGui::Selectable(Msg.Entry.GetName().c_str(), false,
+                        ImGuiSelectableFlags_None, ImGui::CalcTextSize(Msg.Entry.GetName().c_str())))
+                    {
+                        ImGuiIO& io = ImGui::GetIO();
+                        io.SetClipboardTextFn(nullptr, Msg.Entry.GetName().c_str());
+                    }
 
-                        ImGui::PopStyleColor();
+                    ImGui::PopStyleColor();
 
-                        ImGui::SameLine();
-                        ImGui::Text("Info:");
+                    ImGui::SameLine();
+                    ImGui::Text("Info:");
 
-                        ImGui::SameLine();
+                    ImGui::SameLine();
 
-                        if (ImGui::Selectable(Msg.Entry.GetInfo().c_str(), false,
-                            ImGuiSelectableFlags_None, ImGui::CalcTextSize(Msg.Entry.GetInfo().c_str())))
-                        {
-                            ImGuiIO& io = ImGui::GetIO();
-                            io.SetClipboardTextFn(nullptr, Msg.Entry.GetInfo().c_str());
-                        }
+                    if (ImGui::Selectable(Msg.Entry.GetInfo().c_str(), false,
+                        ImGuiSelectableFlags_None, ImGui::CalcTextSize(Msg.Entry.GetInfo().c_str())))
+                    {
+                        ImGuiIO& io = ImGui::GetIO();
+                        io.SetClipboardTextFn(nullptr, Msg.Entry.GetInfo().c_str());
                     }
 
                     ImGui::PopID();
@@ -352,6 +342,7 @@ void AppUI::DrawFrameDebuggerView(AppState& AppState)
         if (ImGui::Button("X"))
         {
             CurrentFrameFilterIndex = -1;
+            FilterMessages(TypeFilteredMsgs, FilteredMsgs);
         }
         ImGui::PopID();
 
@@ -379,6 +370,7 @@ void AppUI::DrawFrameDebuggerView(AppState& AppState)
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
                 {
                     CurrentFrameFilterIndex = SelectedFrame;
+                    FilterMessages(TypeFilteredMsgs, FilteredMsgs);
                 }
             }
 
@@ -428,13 +420,15 @@ void AppUI::UpdateClusterDataUI(AppState& AppState)
 
     CurrentFrameFilterIndex = -1;
 
+    TypeFilteredMsgs.clear();
     FilteredMsgs.clear();
     EntryData.clear();
     CategoryNames.clear();
 
     auto const& Results = AppState.GetComparisonResults();
 
-    Results.FilterByMsgType(MsgType::All, FilteredMsgs);
+    Results.FilterByMsgType(MsgType::All, TypeFilteredMsgs);
+    FilterMessages(TypeFilteredMsgs, FilteredMsgs);
 
     Results.GetEntryData(EntryData);
     Results.GetCategoryNames(CategoryNames);
@@ -446,5 +440,28 @@ void AppUI::UpdateClusterDataUI(AppState& AppState)
     {
         UnsyncedFrames[i] = (SyncedFrames[i]) == 0.5f ? 1.0f : 0.0f;
         SyncedFrames[i] = (UnsyncedFrames[i]) == 0.0f ? 0.5f : 0.0f;
+    }
+}
+
+void AppUI::FilterMessages(std::vector<MsgEntry> const& InMsgs, std::vector<MsgEntry>& OutMessages)
+{
+    OutMessages.clear();
+
+    for (auto const& Msg : InMsgs)
+    {
+        if (CurrentFrameFilterIndex != -1)
+        {
+            if (CurrentFrameFilterIndex != int(Msg.FrameIdx))
+            {
+                continue;
+            }
+        }
+
+        if (LogFilter.PassFilter(Msg.Entry.GetName().c_str())
+            || LogFilter.PassFilter(Msg.Entry.GetInfo().c_str())
+            || LogFilter.PassFilter(Msg.Entry.GetCategory().c_str()))
+        {
+            OutMessages.push_back(Msg);
+        }
     }
 }
