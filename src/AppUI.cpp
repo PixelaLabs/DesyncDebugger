@@ -333,6 +333,14 @@ void AppUI::DrawControlPanelView(AppState& AppState)
 
         ImGui::SameLine();
 
+        if (ImGui::Button("Browse Folder"))
+        {
+            std::string Cmd = "Explorer.exe " + AppState.GetSearchFolder() + " &";
+            std::system(Cmd.c_str());
+        }
+
+        ImGui::SameLine();
+
         if (ImGui::Button("Export Report"))
         {
             ExportCompareReport(AppState);
