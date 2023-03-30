@@ -5,6 +5,9 @@
 #include "imgui.h"
 #include "implot.h"
 
+#include <chrono>
+#include <iomanip>
+
 static ImGuiTextFilter LogFilter;
 static ImGuiTextFilter EntriesFilter;
 static ImGuiTextFilter CategoryFilter;
@@ -318,7 +321,7 @@ void AppUI::DrawControlPanelView(AppState& AppState)
         static char WorkingDirectoryPath[1024] = { '\0' };
         strcpy_s(WorkingDirectoryPath, AppState.GetSearchFolder().c_str());
 
-        if (ImGui::InputText("Working Directory", WorkingDirectoryPath, 1024))
+        if (ImGui::InputText("Log Directory", WorkingDirectoryPath, 1024))
         {
             AppState.SetSearchFolder(WorkingDirectoryPath);
         }
@@ -326,6 +329,13 @@ void AppUI::DrawControlPanelView(AppState& AppState)
         if (ImGui::Button("Load Logs"))
         {
             UpdateClusterDataUI(AppState);
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Export Report"))
+        {
+            ExportCompareReport(AppState);
         }
     }
 
@@ -441,6 +451,52 @@ void AppUI::UpdateClusterDataUI(AppState& AppState)
         UnsyncedFrames[i] = (SyncedFrames[i]) == 0.5f ? 1.0f : 0.0f;
         SyncedFrames[i] = (UnsyncedFrames[i]) == 0.0f ? 0.5f : 0.0f;
     }
+}
+
+void AppUI::ExportCompareReport(AppState& AppState)
+{
+    const auto& Results = AppState.GetComparisonResults();
+
+    std::vector<MsgEntry> OutDesyncMsgs;
+    std::vector<MsgEntry> OutUniqueDesyncMsgs;
+
+    Results.FilterByMsgType(MsgType::Desync, OutDesyncMsgs);
+    Results.FilterUniqueMsgs(OutDesyncMsgs, OutUniqueDesyncMsgs);
+
+    if (OutUniqueDesyncMsgs.empty())
+    {
+        return;
+    }
+
+    std::time_t Time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::tm LocalTime = *std::localtime(&Time);
+
+    std::stringstream TimeStream;
+    TimeStream << std::put_time(&LocalTime, "[%Y.%m.%d-%H.%M.%S]");
+
+    std::string FileName = "CompareReport " + TimeStream.str() + ".txt";
+
+    std::string FileFullPath = AppState.GetSearchFolder() + "\\" + FileName;
+
+    std::ofstream ExportFile;
+    ExportFile.open(FileFullPath);
+
+    if (!ExportFile.is_open())
+    {
+        std::cout << "Can't open File for export: " + FileFullPath;
+        return;
+    }
+
+    Results.Print(ExportFile);
+
+    ExportFile << std::endl << "Unique [Desync] entries:" << std::endl;
+
+    for (auto const& Msg : OutUniqueDesyncMsgs)
+    {
+        ExportFile << "  [Desync] Frame[" << Msg.FrameIdx << "]" << Msg.Entry << std::endl;
+    }
+
+    ExportFile.close();
 }
 
 void AppUI::FilterMessages(std::vector<MsgEntry> const& InMsgs, std::vector<MsgEntry>& OutMessages)
