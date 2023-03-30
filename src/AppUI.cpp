@@ -427,9 +427,9 @@ void AppUI::DrawFrameDebuggerView(AppState& AppState)
 
             ImPlot::EndPlot();
         }
-
-        ImGui::End();
     }
+
+    ImGui::End();
 }
 
 void AppUI::UpdateClusterDataUI(AppState& AppState)
