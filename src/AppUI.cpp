@@ -343,7 +343,7 @@ void AppUI::DrawControlPanelView(AppState& AppState)
 
         if (ImGui::Button("Export Report"))
         {
-            ExportCompareReport(AppState);
+            ExportDesyncReport(AppState);
         }
     }
 
@@ -461,7 +461,7 @@ void AppUI::UpdateClusterDataUI(AppState& AppState)
     }
 }
 
-void AppUI::ExportCompareReport(AppState& AppState)
+void AppUI::ExportDesyncReport(AppState& AppState)
 {
     const auto& Results = AppState.GetComparisonResults();
 
@@ -482,7 +482,7 @@ void AppUI::ExportCompareReport(AppState& AppState)
     std::stringstream TimeStream;
     TimeStream << std::put_time(&LocalTime, "[%Y.%m.%d-%H.%M.%S]");
 
-    std::string FileName = "CompareReport " + TimeStream.str() + ".txt";
+    std::string FileName = "DesyncReport " + TimeStream.str() + ".txt";
 
     std::string FileFullPath = AppState.GetSearchFolder() + "\\" + FileName;
 

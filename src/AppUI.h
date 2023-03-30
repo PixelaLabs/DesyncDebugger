@@ -24,7 +24,7 @@ protected:
 
 protected:
     void UpdateClusterDataUI(AppState& AppState);
-    void ExportCompareReport(AppState& AppState);
+    void ExportDesyncReport(AppState& AppState);
 
     void FilterMessages(std::vector<MsgEntry> const& InMsgs, std::vector<MsgEntry>& OutMessages);
 protected:
