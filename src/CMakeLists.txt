@@ -22,6 +22,8 @@ add_subdirectory(ThirdParty/imgui_cmake)
 add_subdirectory(ThirdParty/implot_cmake)
 add_subdirectory(ThirdParty/DesyncCompare/src)
 
+set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/../icon/appicon.rc")
+
 add_executable(DesyncDebugger 
     main.cpp 
     App.cpp 
@@ -30,6 +32,7 @@ add_executable(DesyncDebugger
     AppState.h
     AppUI.cpp
     AppUI.h
+    ${APP_ICON_RESOURCE_WINDOWS}
 )
 
 target_include_directories(DesyncDebugger PUBLIC ThirdParty/SDL/include)
