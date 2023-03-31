@@ -200,7 +200,10 @@ void AppUI::DrawLogView(AppState& AppState)
             FilterMessages(TypeFilteredMsgs, FilteredMsgs);
         }
         ImGui::SameLine();
-        LogFilter.Draw("Filter", -100);
+        if (LogFilter.Draw("Filter", -100))
+        {
+            FilterMessages(TypeFilteredMsgs, FilteredMsgs);
+        }
 
         ImGui::Separator();
         
