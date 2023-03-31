@@ -14,7 +14,7 @@
 
 bool App::Run(AppUI& AppUI, AppState& AppState)
 {
-    while (!_quit)
+    while (!Quit)
     {
         SDL_Event event;
 
@@ -24,7 +24,7 @@ bool App::Run(AppUI& AppUI, AppState& AppState)
 
             if (event.type == SDL_EVENT_QUIT)
             {
-                _quit = true;
+                Quit = true;
             }
 
             if (event.type == SDL_EVENT_KEY_DOWN)
@@ -36,15 +36,15 @@ bool App::Run(AppUI& AppUI, AppState& AppState)
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
-        SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 0);
-        SDL_RenderClear(_renderer);
+        SDL_SetRenderDrawColor(Renderer, 0, 0, 0, 0);
+        SDL_RenderClear(Renderer);
 
         AppUI.DrawUI(AppState);
 
         ImGui::Render();
         ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
 
-        SDL_RenderPresent(_renderer);
+        SDL_RenderPresent(Renderer);
     }
 
     return true;
@@ -66,11 +66,11 @@ bool App::Init(uint32_t InWindowWidth, uint32_t InWindowHeight)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     
-    _window = SDL_CreateWindow("DesyncDebugger",
+    Window = SDL_CreateWindow("DesyncDebugger",
         WindowWidth, WindowHeight,
         SDL_WINDOW_OPENGL | SDL_RENDERER_PRESENTVSYNC | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
 
-    if (_window == nullptr)
+    if (Window == nullptr)
     {
         SDL_Log("Could not create a window: %s", SDL_GetError());
         return false;
@@ -79,40 +79,40 @@ bool App::Init(uint32_t InWindowWidth, uint32_t InWindowHeight)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
-    _renderer = SDL_CreateRenderer(_window, nullptr, SDL_RENDERER_ACCELERATED);
+    Renderer = SDL_CreateRenderer(Window, nullptr, SDL_RENDERER_ACCELERATED);
 
-    if (_renderer == nullptr)
+    if (Renderer == nullptr)
     {
         SDL_Log("Could not create a renderer: %s", SDL_GetError());
         return false;
     }
 
     SDL_RendererInfo renderInfo;
-    if (SDL_GetRendererInfo(_renderer, &renderInfo) == 0)
+    if (SDL_GetRendererInfo(Renderer, &renderInfo) == 0)
     {
         SDL_Log("Renderer driver [%s] has been created", renderInfo.name);
     }
 
-    _backBuffer = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_RGBA8888,
+    BackBuffer = SDL_CreateTexture(Renderer, SDL_PIXELFORMAT_RGBA8888,
         SDL_TEXTUREACCESS_TARGET, int(InWindowWidth), int(WindowHeight));
 
-    _lockableBackBuffer = SDL_CreateTexture(_renderer, SDL_PIXELFORMAT_RGBA8888,
+    LockableBackBuffer = SDL_CreateTexture(Renderer, SDL_PIXELFORMAT_RGBA8888,
         SDL_TEXTUREACCESS_STREAMING, int(InWindowWidth), int(WindowHeight));
 
-    _glContext = SDL_GL_CreateContext(_window);
+    GLContext = SDL_GL_CreateContext(Window);
 
-    SDL_GL_MakeCurrent(_window, _glContext);
+    SDL_GL_MakeCurrent(Window, GLContext);
 
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     
-    if (!ImGui_ImplSDL3_InitForOpenGL(_window, _glContext))
+    if (!ImGui_ImplSDL3_InitForOpenGL(Window, GLContext))
     {
         SDL_Log("Could not create OpenGL renderer for SDL2");
         return false; 
     }
 
-    if (!ImGui_ImplSDLRenderer_Init(_renderer))
+    if (!ImGui_ImplSDLRenderer_Init(Renderer))
     {
         SDL_Log("Could not create OpenGL3 renderer for ImGui");
         return false;   
@@ -120,9 +120,9 @@ bool App::Init(uint32_t InWindowWidth, uint32_t InWindowHeight)
 
     ImPlot::CreateContext();
 
-    _quit = false;
-    _showProfiler = true;
-    _showScanRows = false;
+    Quit = false;
+    ShowProfiler = true;
+    ShowScanRows = false;
 
     return true;
 }
@@ -133,10 +133,10 @@ void App::Shutdown()
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 
-    SDL_DestroyTexture(_lockableBackBuffer);
-    SDL_DestroyTexture(_backBuffer);
-    SDL_DestroyRenderer(_renderer);
-    SDL_DestroyWindow(_window);
+    SDL_DestroyTexture(LockableBackBuffer);
+    SDL_DestroyTexture(BackBuffer);
+    SDL_DestroyRenderer(Renderer);
+    SDL_DestroyWindow(Window);
 
     SDL_Quit();
 }

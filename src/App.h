@@ -13,18 +13,18 @@ public:
     void Shutdown();
 
 private:
-    SDL_Window* _window;
-    SDL_Renderer* _renderer;
-    SDL_Texture* _backBuffer;
-    SDL_Texture* _lockableBackBuffer;
-    SDL_GLContext _glContext;
+    SDL_Window* Window;
+    SDL_Renderer* Renderer;
+    SDL_Texture* BackBuffer;
+    SDL_Texture* LockableBackBuffer;
+    SDL_GLContext GLContext;
 
     uint32_t WindowWidth;
     uint32_t WindowHeight;
 
-    bool _showProfiler;
-    bool _showScanRows;
-    bool _showTargets;
+    bool ShowProfiler;
+    bool ShowScanRows;
+    bool ShowTargets;
 
-    bool _quit;
+    bool Quit;
 };
